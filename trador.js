@@ -1,8 +1,15 @@
+
+
 var updateTHBUSD = function(){
-	$.getJSON('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(a){
+	return $.getJSON('/thbusd', function(a,b){
 		window.localStorage.setItem('THBUSD', a.quotes.USDTHB);
 	})
-	
+}
+
+var updateBX = function(){
+	return $.getJSON('/bxorderbook', function(a, b){
+		window.localStorage.setItem('BXRate', a);
+	})
 }
 
 var findAskVolume = function(a){
@@ -12,17 +19,7 @@ var findAskVolume = function(a){
 	return cumulater
 }
 
-var a = function(){
-	return $.getJSON('/bxorderbook', function(a,b){
-		return a
-	})
-};
-
 var afterUpdate = function(a){
 	console.log(a)
 }
-
-a().done(function(a){
-	afterUpdate(a);
-});
 

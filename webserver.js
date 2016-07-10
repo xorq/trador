@@ -10,6 +10,12 @@ app.get('/bxorderbook',function(req, res){
 	})
 })
 
+app.get('/thbusd',function(req, res){
+	request.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
+		res.send(data.body)
+	})
+})
+
 app.get('/underscore.js', function(req, res){
 	res.sendFile( FOLDER + '/node_modules/underscore/underscore-min.js')
 })
