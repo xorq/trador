@@ -20,6 +20,10 @@ app.get('/underscore.js', function(req, res){
 	res.sendFile( FOLDER + '/node_modules/underscore/underscore-min.js')
 })
 
+app.get('/backbone.js', function(req, res){
+	res.sendFile( FOLDER + '/node_modules/backbone/backbone-min.js')
+})
+
 app.get('/jquery.js', function(req, res){
 	res.sendFile( FOLDER + '/node_modules/jquery/dist/jquery.min.js')
 })
