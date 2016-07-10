@@ -25,13 +25,25 @@ var afterUpdate = function(a){
 
 var quotation = Backbone.Model.extend({
 	defaults: {
-		USDTHBRate : null
+		USDTHBRate : null,
+		BXOrderbook: null
+	},
+	initialize : function(){
+		//On production change this to : this.updateRate();
+		this.set('USDTHBRate', 35.11);
+		this.updateBX();
 	},
 	updateRate : function(){
 		var master = this;
 		return $.getJSON('/thbusd', function(a, b){
 			master.set('USDTHBRate', a.quotes.USDTHB);
 		});
+	},
+	updateBX : function(){
+		var master = this;
+		return $.getJSON('/bxorderbook', function(a, b){
+			master.set('BXOrderbook', a);
+		})
 	}
 })
 
