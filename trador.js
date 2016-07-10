@@ -23,4 +23,17 @@ var afterUpdate = function(a){
 	console.log(a)
 }
 
+var quotation = Backbone.Model.extend({
+	defaults: {
+		USDTHBRate : null
+	},
+	updateRate : function(){
+		var master = this;
+		return $.getJSON('/thbusd', function(a, b){
+			master.set('USDTHBRate', a.quotes.USDTHB);
+		});
+	}
+})
+
+var quote = new quotation();
 
