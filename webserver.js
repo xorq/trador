@@ -16,6 +16,21 @@ app.get('/thbusd',function(req, res){
 	})
 })
 
+app.get('/bfxorderbook', function(req, res){
+	var payload = {
+	  "limit_bids": 4,
+	  "limit_asks": 4,
+	  "group": 0
+	};
+	var options = {
+	  url: 'https://api.bitfinex.com/v1/book/BTCUSD',
+	  qs: payload
+	};
+	request.get(options, function(error, response, body) {
+	  res.send(body)
+	});
+})
+
 app.get('/underscore.js', function(req, res){
 	res.sendFile( FOLDER + '/node_modules/underscore/underscore-min.js')
 })

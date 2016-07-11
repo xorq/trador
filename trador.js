@@ -33,6 +33,7 @@ var quotation = Backbone.Model.extend({
 		//On production change this to : this.updateRate();
 		this.set('USDTHBRate', 35.16);
 		this.updateBX();
+		this.updateBFX();
 	},
 	updateRate : function(){
 		var master = this;
@@ -44,6 +45,14 @@ var quotation = Backbone.Model.extend({
 		var master = this;
 		return $.getJSON('/bxorderbook', function(a, b){
 			master.set('BXOrderbook', a);
+			return true
+		})
+	},
+	updateBFX : function(){
+		var master = this;
+		return $.getJSON('/bfxorderbook', function(a, b){
+			master.set('BFXOrderbook', a)
+			return true
 		})
 	},
 	getBXBest : function(bidAsk, THBUSD){
@@ -56,6 +65,30 @@ var quotation = Backbone.Model.extend({
 			Bprice: master.get('BXOrderbook')[bidAsk][0][0] * 1 / rate,
 			Bquantity: master.get('BXOrderbook')[bidAsk][0][1]
 		}
+	},
+	getBFXBest: function(bidAsk){
+		var master = this;
+		return {
+			Bprice: master.get('BFXOrderbook')[bidAsk][0].price,
+			Bquantity: master.get('BFXOrderbook')[bidAsk][0].amount
+		}
+	},
+	opportunityBXBFX: function(){
+		return {
+			oppBuyBX : Math.round(10 * (this.getBFXBest('bids').Bprice - this.getBXBest('asks', 'USD').Bprice)) / 10,
+			oppBuyBFX : Math.round(10 * (this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks').Bprice)) / 10
+		}
+	},
+	refreshOpp: function(){
+		var master = this;
+		master.updateBX().done(function(){
+			console.log('bx updated')
+			master.updateBFX().done(function(){
+				console.log('bfx updated');
+				console.log(master.opportunityBXBFX())
+				return true
+			})
+		})
 	}
 })
 
