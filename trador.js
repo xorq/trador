@@ -2,13 +2,11 @@
 
 var updateTHBUSD = function(){
 	return $.getJSON('/thbusd', function(a,b){
-		window.localStorage.setItem('THBUSD', a.quotes.USDTHB);
 	})
 }
 
 var updateBX = function(){
 	return $.getJSON('/bxorderbook', function(a, b){
-		window.localStorage.setItem('BXRate', a);
 	})
 }
 
@@ -23,6 +21,8 @@ var afterUpdate = function(a){
 	console.log(a)
 }
 
+
+
 var quotation = Backbone.Model.extend({
 	defaults: {
 		USDTHBRate : null,
@@ -31,14 +31,14 @@ var quotation = Backbone.Model.extend({
 	},
 	initialize : function(){
 		//On production change this to : this.updateRate();
-		this.set('USDTHBRate', 35.11);
+		this.set('USDTHBRate', 35.16);
 		this.updateBX();
 	},
 	updateRate : function(){
 		var master = this;
-		return $.getJSON('/thbusd', function(a, b){
-			master.set('USDTHBRate', a.quotes.USDTHB);
-		});
+		updateTHBUSD().done(function(a){
+			master.set('USDTHBRate', a.quotes.USDTHB)
+		})
 	},
 	updateBX : function(){
 		var master = this;
