@@ -1,5 +1,3 @@
-
-
 var updateTHBUSD = function(){
 	return $.getJSON('/thbusd', function(a,b){
 	})
@@ -20,8 +18,6 @@ var findAskVolume = function(a){
 var afterUpdate = function(a){
 	console.log(a)
 }
-
-
 
 var quotation = Backbone.Model.extend({
 	defaults: {
