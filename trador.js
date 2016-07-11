@@ -26,7 +26,8 @@ var afterUpdate = function(a){
 var quotation = Backbone.Model.extend({
 	defaults: {
 		USDTHBRate : null,
-		BXOrderbook: null
+		BXOrderbook: null,
+		BFXOrderbook: null
 	},
 	initialize : function(){
 		//On production change this to : this.updateRate();
