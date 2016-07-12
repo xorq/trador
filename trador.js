@@ -78,7 +78,7 @@ var quotation = Backbone.Model.extend({
 			buyBXat : this.getBXBest('asks', 'THB').Bprice,
 			sellBFXat : this.getBFXBest('bids', 'USD').Bprice,
 			buyBFXat : this.getBFXBest('asks', 'USD').Bprice,
-			sellBFXat : this.getBXBest('bids', 'THB').Bprice
+			sellBXat : this.getBXBest('bids', 'THB').Bprice
 		}
 	},
 	refreshOpp: function(){
