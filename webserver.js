@@ -1,4 +1,4 @@
-var FOLDER = '/home/ubuntu/trador'
+var FOLDER = '/home/ubuntu/'
 
 var request = require('request');
 var _ = require('underscore');
@@ -44,11 +44,11 @@ app.get('/jquery.js', function(req, res){
 })
 
 app.get('/trador.js', function(req,res){
-	res.sendFile( FOLDER + '/trador.js')
+	res.sendFile( FOLDER + 'trador/trador.js')
 })
 
 app.get('/', function(req, res){
-	res.sendFile( FOLDER + '/index.html')
+	res.sendFile( FOLDER + 'trador/index.html')
 })
 
 app.listen(9000);
