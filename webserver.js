@@ -42,7 +42,6 @@ var updateTHBUSD = function(){
 	})
 }
 
-
 var quotation = Backbone.Model.extend({
 	defaults: {
 		rates : null,
@@ -71,7 +70,6 @@ var quotation = Backbone.Model.extend({
 				then();
 			}
 		})
-
 	},
 	updateBFX : function(then){
 		var master = this;
@@ -103,12 +101,13 @@ var quotation = Backbone.Model.extend({
 			Bquantity: bx[bidAsk][0][1]
 		}
 	},
-	getBFXBest: function(bidAsk){
+	getBFXBest: function(bidAsk, currency){
 		var master = this;
-		var bfx = master.get('BFXOrderbook')
+		var bfx = master.get('BFXOrderbook');
+		var rate = currency == 'THB' ? master.get('rates').thb : currency == 'USD' ? 1 : null;
 		if (bfx[bidAsk] && bfx[bidAsk][0] && bfx[bidAsk][0].price && bfx[bidAsk][0].amount){
 			return {
-				Bprice: bfx[bidAsk][0].price * 1,
+				Bprice: bfx[bidAsk][0].price * rate,
 				Bquantity: bfx[bidAsk][0].amount * 1
 			}	
 		} else {
