@@ -167,13 +167,15 @@ var loop = function(quote){
 
 var alert = function(subscribers, message){
 	_.each(subscribers, function(subscribee){
-		pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
-			console.log('alert for ' + subscribee.name + ' sent')
-		})
+		var now = new Date();
+		var timeDiff = now - (subscribee.alertTime || 0)
+		if (timeDiff > 3600000){
+			pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
+				console.log('alert for ' + subscribee.name + ' sent')
+			})
+			subscribee['alertTime'] = now;
+		}
 	})
-	/*pusher.note('xorque@gmail.com','Opportunitee', message, function(error, response){
-		console.log('alert sent')
-	});*/
 }
 
 app.get('/refreshData', function(req, res){
