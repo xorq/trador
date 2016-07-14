@@ -147,6 +147,9 @@ var loop = function(quote){
 			opp.oppBuyBFX > opp.oppBuyBFX ? 'BX' : 'BFX',
 			'at',
 			opp.oppBuyBFX > opp.oppBuyBFX ? opp.sellBXat : opp.sellBFXat,
+			'Profit',
+			maxOpp,
+			'$'
 		].join(' ')
 		if (maxOpp > 15) {
 			alert(sentence)
