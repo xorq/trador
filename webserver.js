@@ -7,8 +7,9 @@ var app = express();
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
-
-
+var PushBullet = require('pushbullet');
+var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
+// pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 app.get('/thbusd',function(req, res){
 	request.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
 		res.send(data.body)
@@ -62,14 +63,17 @@ var quotation = Backbone.Model.extend({
 			master.set('rates', newRates);
 		})
 	},
-	updateBX : function(){
+	updateBX : function(then){
 		var master = this;
 		return rp.get('https://bx.in.th/api/orderbook/?pairing=1', function(error, data){
-			master.set('BXOrderbook', JSON.parse(data.body))
+			master.set('BXOrderbook', JSON.parse(data.body));
+			if (typeof then == 'function') {
+				then();
+			}
 		})
 
 	},
-	updateBFX : function(){
+	updateBFX : function(then){
 		var master = this;
 		var payload = {
 			"limit_bids": 4,
@@ -82,6 +86,9 @@ var quotation = Backbone.Model.extend({
 		};
 		return rp.get(options, function(error, response, body) {
 			master.set('BFXOrderbook', JSON.parse(body));
+			if (typeof then == 'function') {
+				then();
+			}
 		});
 	},
 	getBXBest : function(bidAsk, currency){
@@ -121,25 +128,40 @@ var quotation = Backbone.Model.extend({
 			sellBXat : this.getBXBest('bids', 'THB').Bprice
 		}
 	},
-	refreshData: function(){
+	refreshData: function(then){
 		var master = this;
-		master.updateBX().then(function(){
-			master.updateBFX().then(function(a){
-				console.log('updated')
-				//console.log(master.opportunityBXBFX())
-			})
-		})
+		return master.updateBX(master.updateBFX(then))
 	}
-})
+});
 
 var loop = function(quote){
+	var callback = function(){
+		var opp = quote.opportunityBXBFX();
+		var maxOpp = Math.max(opp.oppBuyBFX, opp.oppBuyBX)
+		var sentence = [
+			'Buy', 
+			opp.oppBuyBFX > opp.oppBuyBFX ? 'BFX' : 'BX',
+			'at',
+			opp.oppBuyBFX > opp.oppBuyBFX ? opp.buyBFXat : opp.buyBXat,
+			'SELL',
+			opp.oppBuyBFX > opp.oppBuyBFX ? 'BX' : 'BFX',
+			'at',
+			opp.oppBuyBFX > opp.oppBuyBFX ? opp.sellBXat : opp.sellBFXat,
+		].join(' ')
+		if (maxOpp > 15) {
+			alert(sentence)
+		}
+	}
 	setInterval(function(){
-		console.log('refreshed')
-		quote.refreshData()	
-	}, 60000)
+		quote.refreshData(callback)
+	}, 10000)
 }
 
-
+var alert = function(message){
+	pusher.note('xorque@gmail.com','Opportunitee', message, function(error, response){
+		console.log('alert sent')
+	});
+}
 
 var quote = new quotation();
 quote.refreshData();
@@ -157,5 +179,10 @@ app.get('/checkopp', function(req, res){
 
 app.listen(9000);
 console.log('listening on port 9000')
+
+
+
+
+
 
 
