@@ -15,10 +15,6 @@ var findAskVolume = function(a){
 	return cumulater
 }
 
-var afterUpdate = function(a){
-	console.log(a)
-}
-
 var quotation = Backbone.Model.extend({
 	defaults: {
 		rates : null,
@@ -36,7 +32,7 @@ var quotation = Backbone.Model.extend({
 		updateTHBUSD().done(function(a){
 			var newRates = master.get('rates');
 			newRates.thb = a.quotes.USDTHB;
-			master.set('rates', rates);
+			master.set('rates', newRates);
 		})
 	},
 	updateBX : function(){
@@ -57,8 +53,6 @@ var quotation = Backbone.Model.extend({
 		if (rate == null) {
 			throw 'you must specify a currency'
 		}
-		console.log(rate)
-		console.log(master.get('BXOrderbook')[bidAsk][0][0])
 		return {
 			Bprice: master.get('BXOrderbook')[bidAsk][0][0] / rate,
 			Bquantity: master.get('BXOrderbook')[bidAsk][0][1]
@@ -84,10 +78,8 @@ var quotation = Backbone.Model.extend({
 	refreshOpp: function(){
 		var master = this;
 		master.updateBX().done(function(){
-			console.log('bx updated')
 			master.updateBFX().done(function(a){
 				console.log(master.opportunityBXBFX())
-				return true
 			})
 		})
 	}

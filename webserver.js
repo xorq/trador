@@ -48,7 +48,7 @@ app.get('/trador.js', function(req,res){
 })
 
 app.get('/', function(req, res){
-	res.sendFile( FOLDER + '/trador.html')
+	res.sendFile( FOLDER + '/index.html')
 })
 
 app.listen(1234);
