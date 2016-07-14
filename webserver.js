@@ -1,4 +1,4 @@
-var FOLDER = '/Users/dandan/Documents/Projects/trador'
+var FOLDER = '/home/ubuntu/trador'
 
 var request = require('request');
 var _ = require('underscore');
