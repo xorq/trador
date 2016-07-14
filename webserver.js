@@ -56,7 +56,7 @@ var quotation = Backbone.Model.extend({
 	},
 	updateRate : function(){
 		var master = this;
-		updateTHBUSD().done(function(a){
+		$.getJSON('/thbusd', function(a,b){})().done(function(a){
 			var newRates = master.get('rates');
 			newRates.thb = a.quotes.USDTHB;
 			master.set('rates', newRates);
@@ -157,18 +157,13 @@ var loop = function(quote){
 	setInterval(function(){
 		quote.refreshData(callback)
 	}, 10000)
-}
+};
 
 var alert = function(message){
 	pusher.note('xorque@gmail.com','Opportunitee', message, function(error, response){
 		console.log('alert sent')
 	});
 }
-
-var quote = new quotation();
-quote.refreshData();
-
-loop(quote);
 
 app.get('/refreshData', function(req, res){
 	quote.refreshData();
@@ -182,7 +177,11 @@ app.get('/checkopp', function(req, res){
 app.listen(9000);
 console.log('listening on port 9000')
 
-
+var quote = new quotation();
+quote.refreshData();
+quote.updateRate();
+setInterval(quote.updateRate, 86400000)
+loop(quote);
 
 
 
