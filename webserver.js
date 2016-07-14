@@ -1,19 +1,20 @@
-var FOLDER = '/home/ubuntu'
-
+//var FOLDER = '/home/ubuntu'
+var FOLDER = '/Users/dandan/Documents/Projects/trador/'
 var request = require('request');
 var _ = require('underscore');
 var express = require('express');
 var app = express();
+var server = require('http').Server(app);
+var io = require('socket.io')(server);
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
 var PushBullet = require('pushbullet');
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
+var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}]
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 app.get('/thbusd',function(req, res){
-	request.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
-		res.send(data.body)
-	})
+
 })
 
 app.get('/underscore.js', function(req, res){
@@ -56,11 +57,14 @@ var quotation = Backbone.Model.extend({
 	},
 	updateRate : function(){
 		var master = this;
-		$.getJSON('/thbusd', function(a,b){})().done(function(a){
+		/*return rp.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
 			var newRates = master.get('rates');
-			newRates.thb = a.quotes.USDTHB;
+			newRates.thb = JSON.parse(data.body).quotes.USDTHB;
 			master.set('rates', newRates);
-		})
+		});*/
+			var newRates = master.get('rates');
+			newRates.thb = 35;
+			master.set('rates', newRates);
 	},
 	updateBX : function(then){
 		var master = this;
@@ -93,7 +97,8 @@ var quotation = Backbone.Model.extend({
 		var master = this;
 		var rate = currency == 'USD' ? master.get('rates').thb : currency == 'THB' ? 1 : null;
 		if (rate == null) {
-			throw 'you must specify a currency'
+			console.log('you must sepcify a currency')
+			return
 		}
 		var bx = master.get('BXOrderbook')
 		return {
@@ -119,8 +124,8 @@ var quotation = Backbone.Model.extend({
 	},
 	opportunityBXBFX: function(){
 		return {
-			oppBuyBX : Math.round(10 * (this.getBFXBest('bids').Bprice - this.getBXBest('asks', 'USD').Bprice)) / 10,
-			oppBuyBFX : Math.round(10 * (this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks').Bprice)) / 10,
+			oppBuyBX : Math.round(10 * (this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice)) / 10,
+			oppBuyBFX : Math.round(10 * (this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice)) / 10,
 			buyBXat : this.getBXBest('asks', 'THB').Bprice,
 			sellBFXat : this.getBFXBest('bids', 'USD').Bprice,
 			buyBFXat : this.getBFXBest('asks', 'USD').Bprice,
@@ -150,19 +155,25 @@ var loop = function(quote){
 			maxOpp,
 			'$'
 		].join(' ')
-		if (maxOpp > 15) {
-			alert(sentence)
+		if (maxOpp > 12) {
+			alert(subscribers, sentence)
 		}
 	}
 	setInterval(function(){
 		quote.refreshData(callback)
-	}, 10000)
+		console.log('refresh')
+	}, 180000)
 };
 
-var alert = function(message){
-	pusher.note('xorque@gmail.com','Opportunitee', message, function(error, response){
+var alert = function(subscribers, message){
+	_.each(subscribers, function(subscribee){
+		pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
+			console.log('alert for ' + subscribee.name + ' sent')
+		})
+	})
+	/*pusher.note('xorque@gmail.com','Opportunitee', message, function(error, response){
 		console.log('alert sent')
-	});
+	});*/
 }
 
 app.get('/refreshData', function(req, res){
@@ -174,7 +185,11 @@ app.get('/checkopp', function(req, res){
 	res.send(quote.opportunityBXBFX())
 })
 
-app.listen(9000);
+app.get('/rates', function(req, res){
+	res.send(quote.get('rates'))
+})
+
+
 console.log('listening on port 9000')
 
 var quote = new quotation();
@@ -184,6 +199,7 @@ setInterval(quote.updateRate, 86400000)
 loop(quote);
 
 
+app.listen(9000);
 
 
 
