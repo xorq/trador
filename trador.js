@@ -10,7 +10,7 @@ var opportunities = Backbone.Model.extend({
 	}
 });
 
-var view = Backbone.View.extend({
+var viewOpps = Backbone.View.extend({
 	model: opportunities,
 	template: _.template('\
 		<table id="opps" class="compact stripe">\
@@ -56,7 +56,7 @@ var view = Backbone.View.extend({
 
 var oppModel = new opportunities();
 oppModel.initialize().done(function(){
-	var oppView = new view({model:oppModel})
+	var oppView = new viewOpps({model:oppModel})
 	oppView.render().$el.appendTo($('#info'))
 
 })

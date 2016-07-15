@@ -12,6 +12,10 @@ var PushBullet = require('pushbullet');
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
 var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}]
 
+var round2 = function(n){
+	return Math.round(n*100)/100
+}
+
 app.get('/underscore.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
 })
@@ -126,12 +130,12 @@ var quotation = Backbone.Model.extend({
 	},
 	opportunityBXBFX: function(){
 		return {
-			oppBuyBX : Math.round(10 * (this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice)) / 10,
-			oppBuyBFX : Math.round(10 * (this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice)) / 10,
-			buyBXat : this.getBXBest('asks', 'THB').Bprice,
-			sellBFXat : this.getBFXBest('bids', 'USD').Bprice,
-			buyBFXat : this.getBFXBest('asks', 'USD').Bprice,
-			sellBXat : this.getBXBest('bids', 'THB').Bprice
+			oppBuyBX : round2(this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice),
+			oppBuyBFX : round2(this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice),
+			buyBXat : round2(this.getBXBest('asks', 'THB').Bprice),
+			sellBFXat : round2(this.getBFXBest('bids', 'USD').Bprice),
+			buyBFXat : round2(this.getBFXBest('asks', 'USD').Bprice),
+			sellBXat : round2(this.getBXBest('bids', 'THB').Bprice)
 		}
 	},
 	refreshData: function(then){
