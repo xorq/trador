@@ -52,7 +52,8 @@ var quotation = Backbone.Model.extend({
 	},
 	initialize : function(){
 		//On production change this to : this.updateRate();
-		this.set('rates', {usd: 1, thb: 35.16});
+		//this.set('rates', {usd: 1, thb: 35.16});
+		this.updateRate();
 		this.updateBX();
 		this.updateBFX();
 	},
