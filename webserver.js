@@ -13,7 +13,7 @@ var PushBullet = require('pushbullet');
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
 var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}]
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
-app.get('/thbusd',function(req, res){
+app.get('/pushSomething',function(req, res){
 
 })
 
@@ -138,7 +138,7 @@ var quotation = Backbone.Model.extend({
 	}
 });
 
-var loop = function(quote){
+var loop = function(quote, subscribers){
 	var callback = function(){
 		var opp = quote.opportunityBXBFX();
 		var maxOpp = Math.max(opp.oppBuyBFX, opp.oppBuyBX)
@@ -198,7 +198,7 @@ var quote = new quotation();
 quote.refreshData();
 quote.updateRate();
 setInterval(quote.updateRate, 86400000)
-loop(quote);
+loop(subscribers, quote);
 
 
 app.listen(9000);
