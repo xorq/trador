@@ -1,5 +1,3 @@
-//var FOLDER = '/home/ubuntu'
-var FOLDER = '/Users/dandan/Documents/Projects/trador/'
 var request = require('request');
 var _ = require('underscore');
 var express = require('express');
@@ -18,23 +16,23 @@ app.get('/pushSomething',function(req, res){
 })
 
 app.get('/underscore.js', function(req, res){
-	res.sendFile( FOLDER + '/node_modules/underscore/underscore-min.js')
+	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
 })
 
 app.get('/backbone.js', function(req, res){
-	res.sendFile( FOLDER + '/node_modules/backbone/backbone-min.js')
+	res.sendFile( __dirname + '/node_modules/backbone/backbone-min.js')
 })
 
 app.get('/jquery.js', function(req, res){
-	res.sendFile( FOLDER + '/node_modules/jquery/dist/jquery.min.js')
+	res.sendFile( __dirname + '/node_modules/jquery/dist/jquery.min.js')
 })
 
 app.get('/trador.js', function(req,res){
-	res.sendFile( FOLDER + '/trador.js')
+	res.sendFile( __dirname + '/trador.js')
 })
 
 app.get('/', function(req, res){
-	res.sendFile( FOLDER + '/index.html')
+	res.sendFile( __dirname + '/index.html')
 })
 
 var updateTHBUSD = function(){
