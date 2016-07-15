@@ -32,7 +32,7 @@ app.get('/datatables.css', function(req,res){
 	res.sendFile(__dirname + '/datatables.css')
 })
 app.get('/datatables.js', function(req,res){
-	res.sendFile(__dirname + '/dataTables.js')
+	res.sendFile(__dirname + '/datatables.js')
 })
 
 app.get('/', function(req, res){
