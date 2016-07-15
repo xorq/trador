@@ -8,12 +8,9 @@ var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
 var PushBullet = require('pushbullet');
+// pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
 var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}]
-// pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
-app.get('/pushSomething',function(req, res){
-
-})
 
 app.get('/underscore.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
