@@ -28,6 +28,13 @@ app.get('/trador.js', function(req,res){
 	res.sendFile( __dirname + '/trador.js')
 })
 
+app.get('/datatables.css', function(req,res){
+	res.sendFile(__dirname + '/datatables.css')
+})
+app.get('/datatables.js', function(req,res){
+	res.sendFile(__dirname + '/dataTables.js')
+})
+
 app.get('/', function(req, res){
 	res.sendFile( __dirname + '/index.html')
 })
