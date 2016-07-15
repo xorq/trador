@@ -1,4 +1,4 @@
-var FOLDER = '/home/ubuntu'
+gitvar FOLDER = '/home/ubuntu'
 //var FOLDER = '/Users/dandan/Documents/Projects/trador/'
 var request = require('request');
 var _ = require('underscore');
@@ -36,7 +36,7 @@ app.get('/trador.js', function(req,res){
 app.get('/', function(req, res){
 	res.sendFile( FOLDER + '/index.html')
 })
-
+var thereyougotest = 0;
 
 var updateTHBUSD = function(){
 	return $.getJSON('/thbusd', function(a,b){
