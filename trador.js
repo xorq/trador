@@ -13,7 +13,7 @@ var opportunities = Backbone.Model.extend({
 var view = Backbone.View.extend({
 	model: opportunities,
 	template: _.template('\
-		<table id="opps">\
+		<table id="opps" class="compact stripe">\
 			<thead>\
 				<tr>\
 					<th>Operation</th>\
