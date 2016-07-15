@@ -195,7 +195,7 @@ var quote = new quotation();
 quote.refreshData();
 quote.updateRate();
 setInterval(quote.updateRate, 86400000)
-loop(subscribers, quote);
+loop(quote, subscribers);
 
 
 app.listen(9000);
