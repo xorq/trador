@@ -70,5 +70,8 @@ socket.on('new quote', function(msg){
 	refresh()
 })
 
+socket.on('caca', function(msg){
+	$('#marcel').html(parseInt($('#marcel').html()) + 1)
+})
 
 

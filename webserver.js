@@ -78,7 +78,7 @@ var quotation = Backbone.Model.extend({
 	updateBX : function(then){
 		var master = this;
 		return rp.get('https://bx.in.th/api/orderbook/?pairing=1', function(error, data){
-			master.set('BXOrderbook', JSON.parse(data.body));
+			master.set('BXOrderbook', JSON.parse(data && data.body));
 			if (typeof then == 'function') {
 				then();
 			}
@@ -192,16 +192,9 @@ setInterval(quote.updateRate, 86400000)
 loop(quote, subscribers);
 
 
-io.on('connection', function(socket){
-	/*socket.on('message', function(message){
-		io.emit('message', message)
-	})
-	setTimeout(function(){
-		
-	}, 10000)*/
-})
-
-
+setInterval(function(){
+	io.emit('caca')
+},3000)
 
 
 
