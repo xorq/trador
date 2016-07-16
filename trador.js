@@ -17,7 +17,7 @@ var viewOpps = Backbone.View.extend({
 			<thead>\
 				<tr>\
 					<th>Operation</th>\
-					<th>Profit $</th>\
+					<th>Profit</th>\
 					<th>Achat</th>\
 					<th>Vente</th>\
 				</tr>\
@@ -55,8 +55,20 @@ var viewOpps = Backbone.View.extend({
 })
 
 var oppModel = new opportunities();
-oppModel.initialize().done(function(){
-	var oppView = new viewOpps({model:oppModel})
-	oppView.render().$el.appendTo($('#info'))
-
+var socket = io();
+var refresh = function(){
+	oppModel.initialize().done(function(){
+		var oppView = new viewOpps({model:oppModel})
+		oppView.render().$el.appendTo($('#info'))
+		$('#info').empty();
+		oppView.render().$el.appendTo($('#info'));
+		console.log('refreshed')
+	})
+}
+refresh();
+socket.on('new quote', function(msg){
+	refresh()
 })
+
+
+

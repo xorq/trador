@@ -2,8 +2,8 @@ var request = require('request');
 var _ = require('underscore');
 var express = require('express');
 var app = express();
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
@@ -32,6 +32,10 @@ app.get('/trador.js', function(req,res){
 	res.sendFile( __dirname + '/trador.js')
 })
 
+app.get('/socket.io.js', function(req,res){
+	res.sendFile( __dirname + '/node_modules/socket.io-client/socket.io.js')
+})
+
 app.get('/datatables.css', function(req,res){
 	res.sendFile(__dirname + '/datatables.css')
 })
@@ -43,10 +47,9 @@ app.get('/', function(req, res){
 	res.sendFile( __dirname + '/index.html')
 })
 
-var updateTHBUSD = function(){
-	return $.getJSON('/thbusd', function(a,b){
-	})
-}
+io.on('connection', function(socket){
+  console.log('a user connected');
+});
 
 var quotation = Backbone.Model.extend({
 	defaults: {
@@ -146,29 +149,11 @@ var quotation = Backbone.Model.extend({
 
 var loop = function(quote, subscribers){
 	var callback = function(){
-		var opp = quote.opportunityBXBFX();
-		var maxOpp = Math.max(opp.oppBuyBFX, opp.oppBuyBX)
-		var sentence = [
-			'Buy', 
-			opp.oppBuyBFX > opp.oppBuyBFX ? 'BFX' : 'BX',
-			'at',
-			opp.oppBuyBFX > opp.oppBuyBFX ? opp.buyBFXat : opp.buyBXat,
-			'SELL',
-			opp.oppBuyBFX > opp.oppBuyBFX ? 'BX' : 'BFX',
-			'at',
-			opp.oppBuyBFX > opp.oppBuyBFX ? opp.sellBXat : opp.sellBFXat,
-			'Profit',
-			maxOpp,
-			'$'
-		].join(' ')
-		if (maxOpp > 12) {
-			alert(subscribers, sentence)
-		}
+		io.emit('new quote', '')
 	}
 	setInterval(function(){
 		quote.refreshData(callback)
-		console.log('refresh')
-	}, 180000)
+	}, 30000)
 };
 
 var alert = function(subscribers, message){
@@ -186,7 +171,7 @@ var alert = function(subscribers, message){
 
 app.get('/refreshData', function(req, res){
 	quote.refreshData();
-	//res.send(quote.opportunityBXBFX())
+	res.send(quote.opportunityBXBFX())
 })
 
 app.get('/checkopp', function(req, res){
@@ -207,7 +192,20 @@ setInterval(quote.updateRate, 86400000)
 loop(quote, subscribers);
 
 
-app.listen(9000);
+io.on('connection', function(socket){
+	/*socket.on('message', function(message){
+		io.emit('message', message)
+	})
+	setTimeout(function(){
+		
+	}, 10000)*/
+})
 
+
+
+
+
+
+http.listen(9000, function(){console.log('listening 9000')})
 
 
