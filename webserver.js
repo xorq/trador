@@ -10,7 +10,20 @@ var rp = require('request-promise');
 var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
-var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}]
+var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}];
+var bitfinex = require('bitfinex');
+/*var webSocket = require('ws');
+var w = new webSocket("wss://api2.bitfinex.com:3000/ws");
+w.onmessage = function(msg) {
+    console.log(msg.data);
+};
+w.on('open', function(){
+	w.send(JSON.stringify({
+	    "event": "subscribe",
+	    "channel": "ticker",
+	    "pair": "BTCUSD"
+	}))
+})*/
 
 var round2 = function(n){
 	return Math.round(n*100)/100
@@ -85,7 +98,7 @@ var quotation = Backbone.Model.extend({
 		})
 	},
 	updateBFX : function(then){
-		var master = this;
+		/*var master = this;
 		var payload = {
 			"limit_bids": 4,
 			"limit_asks": 4,
@@ -100,7 +113,32 @@ var quotation = Backbone.Model.extend({
 			if (typeof then == 'function') {
 				then();
 			}
-		});
+		});*/
+		var master = this;
+		var webSocket = require('ws');
+		var w = new webSocket("wss://api2.bitfinex.com:3000/ws");
+		w.onmessage = function(msg) {
+			var msg = JSON.parse(msg.data);
+			if (msg && msg.length > 4) {
+				var orderbook = {
+					bids:[{price: msg[7], amount:msg[8]}],
+					asks:[{price: msg[3], amount:msg[4]}]
+				}
+			
+				master.set('BFXOrderbook', orderbook)
+				console.log('orderbook ', orderbook)
+			}	
+			if (typeof then == 'function') {
+				then();
+			}
+		};
+		w.on('open', function(){
+			w.send(JSON.stringify({
+			    "event": "subscribe",
+			    "channel": "ticker",
+			    "pair": "BTCUSD"
+			}))
+		})
 	},
 	getBXBest : function(bidAsk, currency){
 		var master = this;
@@ -143,20 +181,42 @@ var quotation = Backbone.Model.extend({
 	},
 	refreshData: function(then){
 		var master = this;
-		return master.updateBX(master.updateBFX(then))
+		return master.updateBX(then)
 	}
 });
 
 var loop = function(quote, subscribers){
 	var callback = function(){
 		io.emit('new quote', '')
+		var opp = quote.opportunityBXBFX();
+		var maxOpp = Math.max(opp.oppBuyBX, opp.oppBuyBFX);
+			var sentence = [
+				'Buy', 
+				opp.oppBuyBFX > opp.oppBuyBFX ? 'BFX' : 'BX',
+				'at',
+				opp.oppBuyBFX > opp.oppBuyBFX ? opp.buyBFXat : opp.buyBXat,
+				'SELL',
+				opp.oppBuyBFX > opp.oppBuyBFX ? 'BX' : 'BFX',
+				'at',
+				opp.oppBuyBFX > opp.oppBuyBFX ? opp.sellBXat : opp.sellBFXat,
+				'Profit',
+				maxOpp,
+				'$'
+			].join(' ')
+		if (maxOpp > 10) {
+			checkAlert(subscribers, sentencec)
+		}
+
 	}
+	quote.updateBFX(function(){
+		io.emit('new quote', '')
+	});
 	setInterval(function(){
 		quote.refreshData(callback)
 	}, 30000)
 };
 
-var alert = function(subscribers, message){
+var checkAlert = function(subscribers, message){
 	_.each(subscribers, function(subscribee){
 		var now = new Date();
 		var timeDiff = now - (subscribee.alertTime || 0)
@@ -182,22 +242,11 @@ app.get('/rates', function(req, res){
 	res.send(quote.get('rates'))
 })
 
-
-console.log('listening on port 9000')
-
 var quote = new quotation();
 quote.refreshData();
 quote.updateRate();
 setInterval(quote.updateRate, 86400000)
 loop(quote, subscribers);
-
-
-setInterval(function(){
-	io.emit('caca')
-},3000)
-
-
-
 
 http.listen(9000, function(){console.log('listening 9000')})
 

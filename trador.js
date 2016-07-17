@@ -56,9 +56,10 @@ var viewOpps = Backbone.View.extend({
 
 var oppModel = new opportunities();
 var socket = io();
+var oppView = new viewOpps({model:oppModel})
+
 var refresh = function(){
 	oppModel.initialize().done(function(){
-		var oppView = new viewOpps({model:oppModel})
 		oppView.render().$el.appendTo($('#info'))
 		$('#info').empty();
 		oppView.render().$el.appendTo($('#info'));
