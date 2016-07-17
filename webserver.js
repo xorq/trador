@@ -204,7 +204,7 @@ var loop = function(quote, subscribers){
 				'$'
 			].join(' ')
 		if (maxOpp > 10) {
-			checkAlert(subscribers, sentencec)
+			checkAlert(subscribers, sentence)
 		}
 
 	}
