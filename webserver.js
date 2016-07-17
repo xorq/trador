@@ -126,7 +126,6 @@ var quotation = Backbone.Model.extend({
 				}
 			
 				master.set('BFXOrderbook', orderbook)
-				console.log('orderbook ', orderbook)
 			}	
 			if (typeof then == 'function') {
 				then();
