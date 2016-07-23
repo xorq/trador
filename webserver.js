@@ -19,6 +19,36 @@ var bitfinex = require('bitfinex');
 var request = require('request');
 var mysql = require('mysql');
 
+
+
+var nodemailer = require('nodemailer');
+ 
+// create reusable transporter object using the default SMTP transport 
+var transporter = nodemailer.createTransport('smtps://xorque%40gmail.com:jdhtjyvfxsfyrixv@smtp.gmail.com');
+ 
+// setup e-mail data with unicode symbols 
+
+
+var sendMail = function(address, title, textMessage, htmlMessage){
+	var mailOptions = {
+		from: '"xorq EC2" <xorque@gmail.com>', // sender address 
+		to: address, // list of receivers 
+		subject: title, // Subject line 
+		text: textMessage, // plaintext body 
+		html: htmlMessage // html body 
+	};
+	// send mail with defined transport object 
+	transporter.sendMail(mailOptions, function(error, info){
+		if(error){
+			return console.log(error);
+		}
+		console.log('Message sent: ' + info.response);
+	});
+}
+
+
+//mail trador jdhtjyvfxsfyrixv
+
 var connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
@@ -72,20 +102,38 @@ app.post('/userregister', function(req, res, next){
 		console.log('row is ',rows, !rows.length);
 		if (!rows || !rows.length){
 			if (req.body.passhash){
-				var query = 'INSERT INTO users (email, passhash) VALUES ("' + req.body.email + '","' + req.body.passhash + '")'
+				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email).slice(0,20);
+				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
 				console.log(query)
 				connection.query(query, function(err2){
 					res.send('user added')
+					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm')
 				})
 			}
 		} else if (rows[0] && rows[0].passhash == req.body.passhash){
-			res.cookie('email', req.body.email, {signed: true});
-			res.send(req.body.email)
+			connection.query('SELECT verified FROM users WHERE email="' + req.body.email + '"', function(err, rowVerified){
+				console.log(verified)
+				if (rowVerified[0].verified == 1){
+					res.cookie('email', req.body.email, {signed: true});
+					res.send(req.body.email)
+				} else {
+					res.send('need email conf')
+				}
+			})
 		}
 	})
 })
 
-
+app.get('/verify', function(req, res){
+	var email = req.query['email'];
+	var verNum = req.query['conf'];
+	var query = 'UPDATE users SET verified=true WHERE email = "' + email + '"';
+	connection.query(query, function(err){
+		res.send('ok')
+	})
+	console.log(email)
+	console.log(verNum)
+})
 
 io.on('connection', function(socket){
   console.log('a user connected');
