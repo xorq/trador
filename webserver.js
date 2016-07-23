@@ -1,6 +1,10 @@
 var request = require('request');
 var _ = require('underscore');
 var express = require('express');
+var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
+var sha256 = require('js-sha256')
+
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -10,20 +14,25 @@ var rp = require('request-promise');
 var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
-var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'}];
+var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'},{name: 'ygarnir', email: 'ygarnir2@gmail.com'}];
 var bitfinex = require('bitfinex');
-/*var webSocket = require('ws');
-var w = new webSocket("wss://api2.bitfinex.com:3000/ws");
-w.onmessage = function(msg) {
-    console.log(msg.data);
-};
-w.on('open', function(){
-	w.send(JSON.stringify({
-	    "event": "subscribe",
-	    "channel": "ticker",
-	    "pair": "BTCUSD"
-	}))
-})*/
+var request = require('request');
+var mysql = require('mysql');
+
+var connection = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : '123123',
+  database : 'trador'
+});
+app.use(cookieParser('jean a de longues moustaches'));
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+app.get('/userdata', function(req, res){
+	res.send(req.signedCookies)
+})
 
 var round2 = function(n){
 	return Math.round(n*100)/100
@@ -32,33 +41,51 @@ var round2 = function(n){
 app.get('/underscore.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
 })
-
 app.get('/backbone.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/backbone/backbone-min.js')
 })
-
 app.get('/jquery.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/jquery/dist/jquery.min.js')
 })
-
 app.get('/trador.js', function(req,res){
 	res.sendFile( __dirname + '/trador.js')
 })
-
+app.get('/sha256.js', function(req,res){
+	res.sendFile( __dirname + '/sha256.js')
+})
 app.get('/socket.io.js', function(req,res){
 	res.sendFile( __dirname + '/node_modules/socket.io-client/socket.io.js')
 })
-
 app.get('/datatables.css', function(req,res){
 	res.sendFile(__dirname + '/datatables.css')
 })
 app.get('/datatables.js', function(req,res){
 	res.sendFile(__dirname + '/datatables.js')
 })
-
 app.get('/', function(req, res){
 	res.sendFile( __dirname + '/index.html')
 })
+
+app.post('/userregister', function(req, res, next){
+	console.log('SELECT * FROM users WHERE email=' + req.body.email)
+	connection.query('SELECT * FROM users WHERE email="' + req.body.email + '"', function(err, rows){
+		console.log('row is ',rows, !rows.length);
+		if (!rows || !rows.length){
+			if (req.body.passhash){
+				var query = 'INSERT INTO users (email, passhash) VALUES ("' + req.body.email + '","' + req.body.passhash + '")'
+				console.log(query)
+				connection.query(query, function(err2){
+					res.send('user added')
+				})
+			}
+		} else if (rows[0] && rows[0].passhash == req.body.passhash){
+			res.cookie('email', req.body.email, {signed: true});
+			res.send(req.body.email)
+		}
+	})
+})
+
+
 
 io.on('connection', function(socket){
   console.log('a user connected');
@@ -98,22 +125,6 @@ var quotation = Backbone.Model.extend({
 		})
 	},
 	updateBFX : function(then){
-		/*var master = this;
-		var payload = {
-			"limit_bids": 4,
-			"limit_asks": 4,
-			"group": 0
-		};
-		var options = {
-			url: 'https://api.bitfinex.com/v1/book/BTCUSD',
-			qs: payload
-		};
-		return rp.get(options, function(error, response, body) {
-			master.set('BFXOrderbook', JSON.parse(body));
-			if (typeof then == 'function') {
-				then();
-			}
-		});*/
 		var master = this;
 		var webSocket = require('ws');
 		var w = new webSocket("wss://api2.bitfinex.com:3000/ws");
@@ -202,7 +213,7 @@ var loop = function(quote, subscribers){
 				maxOpp,
 				'$'
 			].join(' ')
-		if (maxOpp > 10) {
+		if (maxOpp > 13) {
 			checkAlert(subscribers, sentence)
 		}
 
@@ -239,6 +250,14 @@ app.get('/checkopp', function(req, res){
 
 app.get('/rates', function(req, res){
 	res.send(quote.get('rates'))
+})
+
+app.get('/deleteaccount', function(req, res){
+	var query = 'DELETE FROM users WHERE email="' + req.signedCookies.email + '"';
+	console.log(query);
+	connection.query(query, function(){
+		res.send('deleted')
+	})
 })
 
 var quote = new quotation();
