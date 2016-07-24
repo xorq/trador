@@ -88,6 +88,11 @@ var loginView = Backbone.View.extend({
 	},
 	initialize: function(){
 		console.log(this.model)
+		var verifiedUser = window.location.search.split('verifieduser=') && window.location.search.split('verifieduser=')[1] && window.location.search.split('verifieduser=')[1].split('&')[0];
+		if (verifiedUser){
+			window.alert('email verified, please login');
+			window.location = ('/');
+		}
 	},
 	render: function(){
 		this.$el.html(this.template({email: this.model.email()}));
@@ -96,8 +101,13 @@ var loginView = Backbone.View.extend({
 	submit: function(){
 		var master = this;
 		$.post('/userregister', {email:$('#email').val(), passhash: sha256($('#password').val() + $('#email').val())}).done(function(answer){
-			if (answer){
+			var answer = JSON.parse(answer).id;
+			if (answer == 2){
 				master.model.getEmail().done(function(){master.render()})
+			} else if (answer == 0){
+				window.alert('Email sent, please confirm email');
+			} else if (answer == 1){
+				window.alert('You haven\'t confirmed your email yet')
 			}
 		})
 	},
@@ -111,6 +121,7 @@ var loginView = Backbone.View.extend({
 		if (a) {
 			$.get('/deleteaccount', function(result){
 				if (result == 'deleted') {
+					master.logOut();
 					master.render();
 				}
 			})

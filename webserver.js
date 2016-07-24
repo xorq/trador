@@ -29,7 +29,7 @@ var transporter = nodemailer.createTransport('smtps://xorque%40gmail.com:jdhtjyv
 // setup e-mail data with unicode symbols 
 
 
-var sendMail = function(address, title, textMessage, htmlMessage){
+var sendMail = function(address, title, textMessage, htmlMessage, callback){
 	var mailOptions = {
 		from: '"xorq EC2" <xorque@gmail.com>', // sender address 
 		to: address, // list of receivers 
@@ -43,6 +43,7 @@ var sendMail = function(address, title, textMessage, htmlMessage){
 			return console.log(error);
 		}
 		console.log('Message sent: ' + info.response);
+		callback();
 	});
 }
 
@@ -70,54 +71,59 @@ var round2 = function(n){
 
 app.get('/underscore.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
-})
+});
 app.get('/backbone.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/backbone/backbone-min.js')
-})
+});
 app.get('/jquery.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/jquery/dist/jquery.min.js')
-})
+});
 app.get('/trador.js', function(req,res){
 	res.sendFile( __dirname + '/trador.js')
-})
+});
 app.get('/sha256.js', function(req,res){
 	res.sendFile( __dirname + '/sha256.js')
-})
+});
 app.get('/socket.io.js', function(req,res){
 	res.sendFile( __dirname + '/node_modules/socket.io-client/socket.io.js')
-})
+});
 app.get('/datatables.css', function(req,res){
 	res.sendFile(__dirname + '/datatables.css')
-})
+});
 app.get('/datatables.js', function(req,res){
 	res.sendFile(__dirname + '/datatables.js')
-})
+});
 app.get('/', function(req, res){
 	res.sendFile( __dirname + '/index.html')
-})
+});
+app.get('/index.html', function(req, res){
+	res.sendFile( __dirname + '/index.html')
+});
+app.get('/getemailconf', function(req, res){
 
-app.post('/userregister', function(req, res, next){
-	console.log('SELECT * FROM users WHERE email=' + req.body.email)
-	connection.query('SELECT * FROM users WHERE email="' + req.body.email + '"', function(err, rows){
-		console.log('row is ',rows, !rows.length);
+});
+
+app.post('/userregister', function(req, res){
+	var q = 'SELECT * FROM users WHERE email="' + req.body.email + '"';
+	connection.query(q, function(err, rows){
+		console.log(rows)
 		if (!rows || !rows.length){
 			if (req.body.passhash){
-				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email).slice(0,20);
+				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
 				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
-				console.log(query)
 				connection.query(query, function(err2){
-					res.send('user added')
+					var res.send('{"id":0, "description":"user added and email sent"}')
 					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm')
 				})
 			}
 		} else if (rows[0] && rows[0].passhash == req.body.passhash){
 			connection.query('SELECT verified FROM users WHERE email="' + req.body.email + '"', function(err, rowVerified){
-				console.log(verified)
 				if (rowVerified[0].verified == 1){
 					res.cookie('email', req.body.email, {signed: true});
-					res.send(req.body.email)
+					res.send('{"id":2, "description": "user logged in"}');
+					connection.query('UPDATE users SET email_sent=CURDATE() WHERE email="' + req.body.email + '"')
 				} else {
-					res.send('need email conf')
+					res.send('{"id":1, "description": "email not confirmed"}')
 				}
 			})
 		}
@@ -127,16 +133,14 @@ app.post('/userregister', function(req, res, next){
 app.get('/verify', function(req, res){
 	var email = req.query['email'];
 	var verNum = req.query['conf'];
-	var query = 'UPDATE users SET verified=true WHERE email = "' + email + '"';
-	connection.query(query, function(err){
-		res.send('ok')
+	var query = 'UPDATE users SET verified=true WHERE (email = "' + email + '") AND (confcode="' + verNum + '")';
+	connection.query(query, function(err, result){
+		res.redirect('/index.html?verifieduser=' + email)
 	})
-	console.log(email)
-	console.log(verNum)
 })
 
+
 io.on('connection', function(socket){
-  console.log('a user connected');
 });
 
 var quotation = Backbone.Model.extend({
