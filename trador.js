@@ -13,7 +13,7 @@ var opportunities = Backbone.Model.extend({
 var viewOpps = Backbone.View.extend({
 	model: opportunities,
 	template: _.template('\
-		<table id="opps" class="compact stripe">\
+		<table id="opps" class="compact stripe oops">\
 			<thead>\
 				<tr>\
 					<th>Operation</th>\
@@ -113,7 +113,10 @@ var loginView = Backbone.View.extend({
 	},
 	logOut: function(){
 		document.cookie = 'email=; id=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-		location.reload();
+		document.signedCookies = 'email=; id=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		$.get('/logout', function(){
+			location.reload();
+		})
 	},
 	deleteAccount: function(){
 		var master = this;
@@ -130,21 +133,52 @@ var loginView = Backbone.View.extend({
 })
 
 
-var alertes = Backbone.Model.extend({
+var alertesModel = Backbone.Model.extend({
 	default:{
-		alerts : []
+		alertes : {bfxLevel: 100, bxLevel: 100, bfxDirection: 0, bxDirection: 0}
 	},
-	getAlerts: function(){
+	getAlertes: function(){
+		var master = this;
 		return $.getJSON('/alertes', function(result){
-			if (result.length){
-				master.set('alertes', JSON.parse(result))
-			} else {
-				master.set('alertes', [])
-			}
+			master.set('alertes', result)
 		})
 	}
 });
 
+var alertesView = Backbone.View.extend({
+	template: _.template('\
+		<table id="alertes-list" class="small-list">\
+			<thead>\
+				<tr>\
+					<th>Market</th>\
+					<th>Alert Level</th>\
+				</tr>\
+			</thead>\
+			<tbody>\
+				<tr>\
+					<td>BX</td>\
+					<td><%=alertes && alertes.bxLevel%></td>\
+				</tr>\
+				<tr>\
+					<td>BFX</td>\
+					<td><%=alertes && alertes.bfxLevel%></td>\
+				</tr>\
+			</tbody>\
+		</table>\
+	'),
+	render: function(){
+		this.$el.html(this.template({
+			alertes: this.model.get('alertes')
+		}));
+		$('#alertes-list', this.$el).DataTable({
+			"paging":     false,
+			"ordering":   false,
+			"info":       false,
+			"searching":  false
+		});
+		return this
+	}
+})
 
 var currentUser = new user();
 var userView = new loginView({model: currentUser});
@@ -157,20 +191,39 @@ var oppModel = new opportunities();
 var socket = io();
 var oppView = new viewOpps({model:oppModel})
 
+
 var refresh = function(){
 	oppModel.update();
+
+}
+oppModel.on('change', function(){
 	$('#info').empty();
 	oppView.render().$el.appendTo($('#info'));
-}
+});
 
 oppModel.initialize().done(function(){
 	refresh();
 })
 
+
+var alertesModel = new alertesModel();
+var alertesView = new alertesView({model:alertesModel});
+
+alertesModel.getAlertes().done(function(a){
+	$('#alertes').empty();
+	alertesView.render().$el.appendTo('#alertes');
+})
+
+
 socket.on('new quote', function(msg){
 	refresh()
 })
 
+alertesModel.on('change', function(){
+	$('#alertes').empty();
+	alertesView.render().$el.appendTo('#alertes');
+})
 
-
-currentUser.on('change', function(){console.log('user changed')})
+currentUser.on('change', function(){
+	alertesModel.getAlertes();
+})

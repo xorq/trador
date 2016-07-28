@@ -11,9 +11,11 @@ var io = require('socket.io')(http);
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
+
 //var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 //var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
+
 var subscribers = [
 	{name: 'dandan', email: 'xorque@gmail.com', alertes: [
 		{symbol: 'BX', level: 15, supinf: '>'}
@@ -22,6 +24,7 @@ var subscribers = [
 		{symbol: 'BX', level: 20, supinf: '>'}
 	]}
 ];
+
 var bitfinex = require('bitfinex');
 var request = require('request');
 var mysql = require('mysql');
@@ -72,13 +75,18 @@ var round2 = function(n){
 }
 
 app.get('/alertes', function(req, res){
-	connection.query('SELECT * FROM alertes WHERE user_id = ANY (SELECT id FROM users WHERE user_id="' + req.signedCookies.id + '"', function(err, rows){
-		console.log(rows);
-		/*res.send( 
-			_.map(rows, function(d){
-				return {bxLevel : d.}
-			}
-		)*/
+	var q = 'SELECT * FROM alertes WHERE user_id = "' + req.signedCookies.id + '"';
+	connection.query(q, function(err, rows){
+		res.send(
+			//_.map(rows, function(row){ return {
+				{
+					bfxLevel: rows && rows[0] && rows[0].bfx_level,
+					bxLevel: rows && rows[0] && rows[0].bx_level,
+					bfxDirection: rows && rows[0] && rows[0].bfx_direction,
+					bxDirection: rows && rows[0] && rows[0].bx_direction
+				} 
+			//}})
+		);
 	})
 })
 
@@ -112,16 +120,15 @@ app.get('/', function(req, res){
 app.get('/index.html', function(req, res){
 	res.sendFile( __dirname + '/index.html')
 });
-app.get('/getemailconf', function(req, res){
-
+app.get('/logout', function(req, res){
+	res.cookie('id', {maxAge: Date.now()});
+	res.cookie('email', {maxAge: Date.now()});
+	res.send('loggedout');
 });
 
 app.post('/userregister', function(req, res){
 	var q = 'SELECT * FROM users WHERE email="' + req.body.email + '";';
-	console.log(q)
 	connection.query(q, function(err, rows){
-		console.log('err ',err);
-		console.log('rows' , rows)
 		if (!rows || !rows.length){
 			if (req.body.passhash){
 				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
@@ -132,7 +139,6 @@ app.post('/userregister', function(req, res){
 				})
 			}
 		} else if (rows[0] && rows[0].passhash == req.body.passhash){
-			console.log(rows)
 			if (rows && rows[0] && rows[0].verified == 1){
 				//res.cookie('email', req.body.email, {signed: true});
 				res.cookie('email', req.body.email, {signed: true});
@@ -176,7 +182,7 @@ var quotation = Backbone.Model.extend({
 		var master = this;
 		return rp.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
 			var newRates = master.get('rates');
-			newRates.thb = JSON.parse(data.body).quotes.USDTHB;
+			newRates.thb = JSON.parse(data && data.body).quotes.USDTHB;
 			master.set('rates', newRates);
 		});
 			/*var newRates = master.get('rates');
@@ -236,7 +242,7 @@ var quotation = Backbone.Model.extend({
 		var master = this;
 		var bfx = master.get('BFXOrderbook');
 		var rate = currency == 'THB' ? master.get('rates').thb : currency == 'USD' ? 1 : null;
-		if (bfx[bidAsk] && bfx[bidAsk][0] && bfx[bidAsk][0].price && bfx[bidAsk][0].amount){
+		if (bfx && bfx[bidAsk] && bfx[bidAsk][0] && bfx[bidAsk][0].price && bfx[bidAsk][0].amount){
 			return {
 				Bprice: bfx[bidAsk][0].price * rate,
 				Bquantity: bfx[bidAsk][0].amount * 1
@@ -249,13 +255,14 @@ var quotation = Backbone.Model.extend({
 		}
 	},
 	opportunityBXBFX: function(){
+
 		return {
-			oppBuyBX : round2(this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice),
-			oppBuyBFX : round2(this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice),
-			buyBXat : round2(this.getBXBest('asks', 'THB').Bprice),
-			sellBFXat : round2(this.getBFXBest('bids', 'USD').Bprice),
-			buyBFXat : round2(this.getBFXBest('asks', 'USD').Bprice),
-			sellBXat : round2(this.getBXBest('bids', 'THB').Bprice)
+			oppBuyBX : this.getBFXBest('bids', 'USD')   && round2(this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice),
+			oppBuyBFX : this.getBXBest('bids', 'USD')   && round2(this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice),
+			buyBXat : this.getBXBest('asks', 'THB')     && round2(this.getBXBest('asks', 'THB').Bprice),
+			sellBFXat : this.getBFXBest('bids', 'USD')  && round2(this.getBFXBest('bids', 'USD').Bprice),
+			buyBFXat : this.getBFXBest('asks', 'USD')   && round2(this.getBFXBest('asks', 'USD').Bprice),
+			sellBXat : this.getBXBest('bids', 'THB')    && round2(this.getBXBest('bids', 'THB').Bprice)
 		}
 	},
 	refreshData: function(then){
@@ -283,14 +290,34 @@ var loop = function(quote, subscribers){
 				'$'
 			].join(' ');
 		var now = new Date();
-		_.each(subscribers, function(subscribee){
+		var q1 = "SELECT * FROM alertes"
+		connection.query(q1, function(err, rows){
+			_.each(['BX', 'BFX'], function(market){
+				if (opp['oppBuy' + market] ) {
+					var marketLC = market.toLowerCase();
+					_.each(rows, function(row){
+						if ( (row[marketLC + '_direction'] ? 1 : -1) * (opp['oppBuy' + market] - row[marketLC + '_level']) > 0) {
+							var q2 = 'SELECT * FROM users WHERE id = "' + row.user_id + '"';
+							connection.query(q2, function(err, rows2){
+								var email = rows2[0].email;
+								sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
+							})
+						}
+					})				
+				}
+			})
+		})
+		
+		/*_.each(subscribers, function(subscribee){
+
+
 			if (maxOpp > subscribee.alertLevel) {
 				var timeDiff = now - (subscribee.alertTime || 0)
 				if (timeDiff > 3600000){
 					sendMail(subscribee.address, 'ALERTE', '', '<b>' +  + '</b>', function(){console.log('email sent to ' + subscriber.address)})
 				}
 			}
-		})
+		})*/
 
 	}
 	quote.updateBFX(function(){
@@ -301,10 +328,10 @@ var loop = function(quote, subscribers){
 	}, 30000)
 };
 
-var checkAlert = function(subscribers, message){
+/*var checkAlert = function(subscribers, message){
 
 }
-			/*
+			
 
 			pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
 				console.log('alert for ' + subscribee.name + ' sent')
@@ -329,7 +356,6 @@ app.get('/rates', function(req, res){
 
 app.get('/deleteaccount', function(req, res){
 	var query = 'DELETE FROM users WHERE id="' + req.signedCookies.id + '"';
-	console.log(query);
 	connection.query(query, function(){
 		res.send('deleted')
 	})
