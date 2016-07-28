@@ -11,10 +11,17 @@ var io = require('socket.io')(http);
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
-var PushBullet = require('pushbullet');
+//var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
-var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
-var subscribers = [{name: 'dandan', email: 'xorque@gmail.com'},{name: 'ygarnir', email: 'ygarnir2@gmail.com'}];
+//var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
+var subscribers = [
+	{name: 'dandan', email: 'xorque@gmail.com', alertes: [
+		{symbol: 'BX', level: 15, supinf: '>'}
+	]},
+	{name: 'ygarnir', email: 'ygarnir2@gmail.com', alertes: [
+		{symbol: 'BX', level: 20, supinf: '>'}
+	]}
+];
 var bitfinex = require('bitfinex');
 var request = require('request');
 var mysql = require('mysql');
@@ -22,12 +29,7 @@ var mysql = require('mysql');
 
 
 var nodemailer = require('nodemailer');
- 
-// create reusable transporter object using the default SMTP transport 
 var transporter = nodemailer.createTransport('smtps://xorque%40gmail.com:jdhtjyvfxsfyrixv@smtp.gmail.com');
- 
-// setup e-mail data with unicode symbols 
-
 
 var sendMail = function(address, title, textMessage, htmlMessage, callback){
 	var mailOptions = {
@@ -69,6 +71,17 @@ var round2 = function(n){
 	return Math.round(n*100)/100
 }
 
+app.get('/alertes', function(req, res){
+	connection.query('SELECT * FROM alertes WHERE user_id = ANY (SELECT id FROM users WHERE user_id="' + req.signedCookies.id + '"', function(err, rows){
+		console.log(rows);
+		/*res.send( 
+			_.map(rows, function(d){
+				return {bxLevel : d.}
+			}
+		)*/
+	})
+})
+
 app.get('/underscore.js', function(req, res){
 	res.sendFile( __dirname + '/node_modules/underscore/underscore-min.js')
 });
@@ -104,28 +117,31 @@ app.get('/getemailconf', function(req, res){
 });
 
 app.post('/userregister', function(req, res){
-	var q = 'SELECT * FROM users WHERE email="' + req.body.email + '"';
+	var q = 'SELECT * FROM users WHERE email="' + req.body.email + '";';
+	console.log(q)
 	connection.query(q, function(err, rows){
-		console.log(rows)
+		console.log('err ',err);
+		console.log('rows' , rows)
 		if (!rows || !rows.length){
 			if (req.body.passhash){
 				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
 				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
 				connection.query(query, function(err2){
-					var res.send('{"id":0, "description":"user added and email sent"}')
 					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm')
+					res.send('{"id":0, "description":"user added and email sent"}')
 				})
 			}
 		} else if (rows[0] && rows[0].passhash == req.body.passhash){
-			connection.query('SELECT verified FROM users WHERE email="' + req.body.email + '"', function(err, rowVerified){
-				if (rowVerified[0].verified == 1){
-					res.cookie('email', req.body.email, {signed: true});
-					res.send('{"id":2, "description": "user logged in"}');
-					connection.query('UPDATE users SET email_sent=CURDATE() WHERE email="' + req.body.email + '"')
-				} else {
-					res.send('{"id":1, "description": "email not confirmed"}')
-				}
-			})
+			console.log(rows)
+			if (rows && rows[0] && rows[0].verified == 1){
+				//res.cookie('email', req.body.email, {signed: true});
+				res.cookie('email', req.body.email, {signed: true});
+				res.cookie('id', rows[0].id, {signed: true});
+				res.send('{"id":2, "description": "user logged in"}');
+				connection.query('UPDATE users SET email_sent=CURDATE() WHERE email="' + req.body.email + '"')
+			} else {
+				res.send('{"id":1, "description": "email not confirmed"}')
+			}
 		}
 	})
 })
@@ -158,23 +174,24 @@ var quotation = Backbone.Model.extend({
 	},
 	updateRate : function(){
 		var master = this;
-		/*return rp.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
+		return rp.get('http://apilayer.net/api/live?access_key=c60f3e8c41a9313bc52f1279d9fa9cb6&currencies=THB&source=USD&format=1', function(error, data){
 			var newRates = master.get('rates');
 			newRates.thb = JSON.parse(data.body).quotes.USDTHB;
 			master.set('rates', newRates);
-		});*/
-			var newRates = master.get('rates');
+		});
+			/*var newRates = master.get('rates');
 			newRates.thb = 35;
-			master.set('rates', newRates);
+			master.set('rates', newRates);*/
 	},
 	updateBX : function(then){
 		var master = this;
 		return rp.get('https://bx.in.th/api/orderbook/?pairing=1', function(error, data){
-			master.set('BXOrderbook', JSON.parse(data && data.body));
-			if (typeof then == 'function') {
-				then();
-			}
-		})
+				master.set('BXOrderbook', JSON.parse(data.body));
+				if (typeof then == 'function') {
+					then();
+				}
+			})
+		
 	},
 	updateBFX : function(then){
 		var master = this;
@@ -211,8 +228,8 @@ var quotation = Backbone.Model.extend({
 		}
 		var bx = master.get('BXOrderbook')
 		return {
-			Bprice: bx[bidAsk][0][0] / rate,
-			Bquantity: bx[bidAsk][0][1]
+			Bprice: bx[bidAsk] && bx[bidAsk][0][0] / rate,
+			Bquantity: bx[bidAsk] && bx[bidAsk][0][1]
 		}
 	},
 	getBFXBest: function(bidAsk, currency){
@@ -264,10 +281,16 @@ var loop = function(quote, subscribers){
 				'Profit',
 				maxOpp,
 				'$'
-			].join(' ')
-		if (maxOpp > 13) {
-			checkAlert(subscribers, sentence)
-		}
+			].join(' ');
+		var now = new Date();
+		_.each(subscribers, function(subscribee){
+			if (maxOpp > subscribee.alertLevel) {
+				var timeDiff = now - (subscribee.alertTime || 0)
+				if (timeDiff > 3600000){
+					sendMail(subscribee.address, 'ALERTE', '', '<b>' +  + '</b>', function(){console.log('email sent to ' + subscriber.address)})
+				}
+			}
+		})
 
 	}
 	quote.updateBFX(function(){
@@ -279,17 +302,17 @@ var loop = function(quote, subscribers){
 };
 
 var checkAlert = function(subscribers, message){
-	_.each(subscribers, function(subscribee){
-		var now = new Date();
-		var timeDiff = now - (subscribee.alertTime || 0)
-		if (timeDiff > 3600000){
+
+}
+			/*
+
 			pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
 				console.log('alert for ' + subscribee.name + ' sent')
 			})
 			subscribee['alertTime'] = now;
 		}
 	})
-}
+}*/
 
 app.get('/refreshData', function(req, res){
 	quote.refreshData();
@@ -305,7 +328,7 @@ app.get('/rates', function(req, res){
 })
 
 app.get('/deleteaccount', function(req, res){
-	var query = 'DELETE FROM users WHERE email="' + req.signedCookies.email + '"';
+	var query = 'DELETE FROM users WHERE id="' + req.signedCookies.id + '"';
 	console.log(query);
 	connection.query(query, function(){
 		res.send('deleted')
@@ -318,6 +341,8 @@ quote.updateRate();
 setInterval(quote.updateRate, 86400000)
 loop(quote, subscribers);
 
-http.listen(9000, function(){console.log('listening 9000')})
+http.listen(9000, function(){
+	console.log('listening 9000')
+})
 
 

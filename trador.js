@@ -130,6 +130,22 @@ var loginView = Backbone.View.extend({
 })
 
 
+var alertes = Backbone.Model.extend({
+	default:{
+		alerts : []
+	},
+	getAlerts: function(){
+		return $.getJSON('/alertes', function(result){
+			if (result.length){
+				master.set('alertes', JSON.parse(result))
+			} else {
+				master.set('alertes', [])
+			}
+		})
+	}
+});
+
+
 var currentUser = new user();
 var userView = new loginView({model: currentUser});
 
@@ -142,13 +158,19 @@ var socket = io();
 var oppView = new viewOpps({model:oppModel})
 
 var refresh = function(){
-	oppModel.initialize().done(function(){
-		oppView.render().$el.appendTo($('#info'))
-		$('#info').empty();
-		oppView.render().$el.appendTo($('#info'));
-	})
+	oppModel.update();
+	$('#info').empty();
+	oppView.render().$el.appendTo($('#info'));
 }
-refresh();
+
+oppModel.initialize().done(function(){
+	refresh();
+})
+
 socket.on('new quote', function(msg){
 	refresh()
 })
+
+
+
+currentUser.on('change', function(){console.log('user changed')})
