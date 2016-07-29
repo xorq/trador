@@ -48,7 +48,9 @@ var sendMail = function(address, title, textMessage, htmlMessage, callback){
 			return console.log(error);
 		}
 		console.log('Message sent: ' + info.response);
-		callback();
+		if (typeof callback == 'function'){
+			callback();
+		}
 	});
 }
 
@@ -134,8 +136,9 @@ app.post('/userregister', function(req, res){
 				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
 				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
 				connection.query(query, function(err2){
-					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm')
-					res.send('{"id":0, "description":"user added and email sent"}')
+					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm', function(){
+						res.send('{"id":0, "description":"user added and email sent"}')
+					})
 				})
 			}
 		} else if (rows[0] && rows[0].passhash == req.body.passhash){
