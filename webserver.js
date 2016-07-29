@@ -11,7 +11,7 @@ var io = require('socket.io')(http);
 var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
-
+var DOMAIN = 'http://ec2-54-169-204-213.ap-southeast-1.compute.amazonaws.com:9000/'
 //var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 //var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
@@ -136,7 +136,7 @@ app.post('/userregister', function(req, res){
 				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
 				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
 				connection.query(query, function(err2){
-					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="http://localhost:9000/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm', function(){
+					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="' + DOMAIN + '/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm', function(){
 						res.send('{"id":0, "description":"user added and email sent"}')
 					})
 				})
