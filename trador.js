@@ -103,7 +103,7 @@ var loginView = Backbone.View.extend({
 		$.post('/userregister', {email:$('#email').val(), passhash: sha256($('#password').val() + $('#email').val())}).done(function(answer){
 			var answer = JSON.parse(answer).id;
 			if (answer == 2){
-				master.model.getEmail().done(function(){master.render()})
+				master.model.getEmail().done(function(){master.model.trigger('change');})
 			} else if (answer == 0){
 				window.alert('Email sent, please confirm email');
 			} else if (answer == 1){
@@ -235,29 +235,28 @@ var alertesView = Backbone.View.extend({
 var currentUser = new user();
 var userView = new loginView({model: currentUser});
 
-currentUser.getEmail().done(function(a){
-	userView.render().$el.appendTo($('#user_pannel'))
-	if (a.email){
+var alertesModel1 = new alertesModel();
+var alertesView1 = new alertesView({model:alertesModel1});
 
+var makeAlertes = function(){
+	alertesModel1.getAlertes().done(function(a){
+		$('#alertes').empty();
+		alertesView1.render().$el.appendTo('#alertes');
+		alertesView1.delegateEvents();
+	})
+}
 
-		var alertesModel1 = new alertesModel();
-		var alertesView1 = new alertesView({model:alertesModel1});
+var showUser = function(){
+	currentUser.getEmail().done(function(a){
+		userView.render().$el.appendTo($('#user_pannel'))
+		if (a.email){
+			makeAlertes();
+		}
+		currentUser.on('change', showUser);
+	});
+}
 
-		alertesModel1.getAlertes().done(function(a){
-			$('#alertes').empty();
-			alertesView1.render().$el.appendTo('#alertes');
-			alertesView1.delegateEvents();
-		})
-
-		alertesModel1.on('change', function(){
-			$('#alertes').empty();
-			alertesView1.render().$el.appendTo('#alertes');
-		})
-		currentUser.on('change', function(){
-			alertesModel1.getAlertes();
-		})
-	}
-});
+showUser();
 
 var oppModel = new opportunities();
 var socket = io();
@@ -277,7 +276,13 @@ oppModel.initialize().done(function(){
 	refresh();
 })
 
+alertesModel1.on('change', function(){
+	makeAlertes();
+})
 
+currentUser.on('change', function(){
+	alertesModel1.getAlertes()
+})
 
 
 socket.on('new quote', function(msg){

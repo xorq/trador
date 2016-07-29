@@ -12,6 +12,7 @@ var $ = require('jquery');
 var Backbone = require('backbone');
 var rp = require('request-promise');
 var DOMAIN = 'http://ec2-54-169-204-213.ap-southeast-1.compute.amazonaws.com:9000/'
+//var DOMAIN = 'http://localhost:9000/'
 //var PushBullet = require('pushbullet');
 // pushbullet access token o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S
 //var pusher = new PushBullet('o.yDQLdbO495JpGdV3aQPVprmv4dzkZf3S');
@@ -135,8 +136,9 @@ app.post('/userregister', function(req, res){
 			if (req.body.passhash){
 				var confNumber = sha256('les poils du genoux de la duchesse' + req.body.email + req.body.passhash).slice(0,20);
 				var query = 'INSERT INTO users (email, passhash, confcode) VALUES ("' + req.body.email + '","' + req.body.passhash + '","' + confNumber + '")'
-				connection.query(query, function(err2){
-					sendMail(req.body.email, 'Password confirmation for xorq', '', '<a href="' + DOMAIN + '/verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm', function(){
+				connection.query(query, function(err2, row){
+					var link = ('<a href="' + DOMAIN + 'verify?email=' + req.body.email + '&conf=' + confNumber + '">Click to confirm</a>')
+					sendMail(req.body.email, 'Password confirmation for xorq', 'Click the link' ,link, function(){
 						res.send('{"id":0, "description":"user added and email sent"}')
 					})
 				})
@@ -160,7 +162,6 @@ app.post('/modifyalert', function(req, res){
 	var newLevel = req.body['level'];
 	var market = req.body['market'];
 	var direction = req.body['direction'];
-	console.log(req.body.level);
 	var q = 'UPDATE alertes SET ' + market.toLowerCase() + '_level=' + newLevel + ', ' + market.toLowerCase() + '_direction=' + direction + ' WHERE user_id="' + user_id + '"';
 	connection.query(q, function(err, rows){
 		res.send('done')
@@ -172,7 +173,11 @@ app.get('/verify', function(req, res){
 	var verNum = req.query['conf'];
 	var query = 'UPDATE users SET verified=true WHERE (email = "' + email + '") AND (confcode="' + verNum + '")';
 	connection.query(query, function(err, result){
-		res.redirect('/index.html?verifieduser=' + email)
+		connection.query('SELECT id FROM users WHERE email = "' + email + '"', function(err, row){
+			connection.query('INSERT INTO alertes (user_id) VALUES (' + row[0].id + ')', function(){
+				res.redirect('/index.html?verifieduser=' + email)
+			})
+		})
 	})
 })
 
