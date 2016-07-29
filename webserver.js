@@ -152,6 +152,18 @@ app.post('/userregister', function(req, res){
 	})
 })
 
+app.post('/modifyalert', function(req, res){
+	var user_id = req.signedCookies.id;
+	var newLevel = req.body['level'];
+	var market = req.body['market'];
+	var direction = req.body['direction'];
+	console.log(req.body.level);
+	var q = 'UPDATE alertes SET ' + market.toLowerCase() + '_level=' + newLevel + ', ' + market.toLowerCase() + '_direction=' + direction + ' WHERE user_id="' + user_id + '"';
+	connection.query(q, function(err, rows){
+		res.send('done')
+	}) 
+})
+
 app.get('/verify', function(req, res){
 	var email = req.query['email'];
 	var verNum = req.query['conf'];

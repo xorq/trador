@@ -6,6 +6,6 @@ table.dataTable{width:100%;margin:0 auto;clear:both;border-collapse:separate;bor
 .small-list{
 	font-size: 2vw;
 }
-.row1{
+.inline{
 	display: inline;
 }

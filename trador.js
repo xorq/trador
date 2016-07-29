@@ -88,7 +88,6 @@ var loginView = Backbone.View.extend({
 		'click #delete-account' : 'deleteAccount',
 	},
 	initialize: function(){
-		console.log(this.model)
 		var verifiedUser = window.location.search.split('verifieduser=') && window.location.search.split('verifieduser=')[1] && window.location.search.split('verifieduser=')[1].split('&')[0];
 		if (verifiedUser){
 			window.alert('email verified, please login');
@@ -168,9 +167,22 @@ var alertLineModel = Backbone.Model.extend({
 
 var alertLineView = Backbone.View.extend({
 	template: _.template('\
-		<div class=row1 col-xs-12>Alerte sur <%=market%>  si <%=direction ? ">" : "<"%> à <%= level %> </div>\
-		<div class=row1 col-xs-3><button>Edit</button></div>\
+		<div class=inline>Alerte sur <%=market%>  si <%=direction ? ">" : "<"%> à <%= level %> </div>\
+		<div class=inline><button id=edit>Edit</button></div>\
 		'),
+	events: {
+		'click #edit' : 'edit'
+	},
+	edit: function(){
+		var master = this;
+		var data = this.model.getData();
+		var newLevel = window.prompt('New Level?');
+		if (newLevel){
+			$.post('/modifyalert', {market: data.market, level: newLevel, direction: newLevel < 0 ? 0 : 1}).done(function(){
+				master.trigger('change');
+			})
+		}
+	},
 	render: function(){
 		this.$el.html(this.template(this.model.getData()));
 		return this;
@@ -182,6 +194,7 @@ var alertesView = Backbone.View.extend({
 		<div id=alertes></div>\
 	'),
 	render: function(){
+
 		var master = this;
 		this.$el.html(this.template({
 			alertes: this.model.get('alertes')
@@ -199,6 +212,20 @@ var alertesView = Backbone.View.extend({
 		alerteLineViewBX.render().$el.appendTo('#alertes', this.$el);
 		alerteLineViewBFX.render().$el.appendTo('#alertes', this.$el);
 
+		var updateLines = function(){
+			$('#alertes').empty();
+			master.model.getAlertes().done(function(a){
+				alerteLineBXModel.setData({market: 'BX', level: alertes.bxLevel, direction: alertes.bxDirection})
+			})
+		}
+
+		this.listenTo(alerteLineViewBX, 'change', function(){
+			updateLines()
+		})
+		this.listenTo(alerteLineViewBFX, 'change', function(){
+			updateLines()
+		})
+		
 		return this
 	}
 })
@@ -208,8 +235,28 @@ var alertesView = Backbone.View.extend({
 var currentUser = new user();
 var userView = new loginView({model: currentUser});
 
-currentUser.getEmail().done(function(){
+currentUser.getEmail().done(function(a){
 	userView.render().$el.appendTo($('#user_pannel'))
+	if (a.email){
+
+
+		var alertesModel1 = new alertesModel();
+		var alertesView1 = new alertesView({model:alertesModel1});
+
+		alertesModel1.getAlertes().done(function(a){
+			$('#alertes').empty();
+			alertesView1.render().$el.appendTo('#alertes');
+			alertesView1.delegateEvents();
+		})
+
+		alertesModel1.on('change', function(){
+			$('#alertes').empty();
+			alertesView1.render().$el.appendTo('#alertes');
+		})
+		currentUser.on('change', function(){
+			alertesModel1.getAlertes();
+		})
+	}
 });
 
 var oppModel = new opportunities();
@@ -231,25 +278,11 @@ oppModel.initialize().done(function(){
 })
 
 
-var alertesModel1 = new alertesModel();
-var alertesView = new alertesView({model:alertesModel1});
-
-alertesModel1.getAlertes().done(function(a){
-	$('#alertes').empty();
-	alertesView.render().$el.appendTo('#alertes');
-	alertesView.delegateEvents();
-})
 
 
 socket.on('new quote', function(msg){
 	refresh()
 })
 
-alertesModel1.on('change', function(){
-	$('#alertes').empty();
-	alertesView.render().$el.appendTo('#alertes');
-})
 
-currentUser.on('change', function(){
-	alertesModel1.getAlertes();
-})
+
