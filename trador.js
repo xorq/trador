@@ -80,6 +80,7 @@ var loginView = Backbone.View.extend({
 		<input id=password>Password</input>\
 		<button id=submit>Submit</button>" : \
 		"<button id=logout>Log Out</button><button id=delete-account>Delete Account</button>"%> \
+		<b>Email: <%=email%>\
 		'),
 	events: {
 		'click #submit' : 'submit',
@@ -145,40 +146,64 @@ var alertesModel = Backbone.Model.extend({
 	}
 });
 
+var alertLineModel = Backbone.Model.extend({
+	default:{
+		market: null,
+		level: null, 
+		direction: null,
+	}, 
+	setData: function(data){
+		this.market = data.market;
+		this.level = data.level;
+		this.direction = data.direction ? 1 : -1;
+	},
+	getData: function(){
+		return {
+			market: this.get('market'),
+			level: this.get('level'),
+			direction: this.get('direction')
+		}
+	}
+})
+
+var alertLineView = Backbone.View.extend({
+	template: _.template('\
+		<div class=row1 col-xs-12>Alerte sur <%=market%>  si <%=direction ? ">" : "<"%> à <%= level %> </div>\
+		<div class=row1 col-xs-3><button>Edit</button></div>\
+		'),
+	render: function(){
+		this.$el.html(this.template(this.model.getData()));
+		return this;
+	}
+})
+
 var alertesView = Backbone.View.extend({
 	template: _.template('\
-		<table id="alertes-list" class="small-list">\
-			<thead>\
-				<tr>\
-					<th>Market</th>\
-					<th>Alert Level</th>\
-				</tr>\
-			</thead>\
-			<tbody>\
-				<tr>\
-					<td>BX</td>\
-					<td><%=alertes && alertes.bxLevel%></td>\
-				</tr>\
-				<tr>\
-					<td>BFX</td>\
-					<td><%=alertes && alertes.bfxLevel%></td>\
-				</tr>\
-			</tbody>\
-		</table>\
+		<div id=alertes></div>\
 	'),
 	render: function(){
+		var master = this;
 		this.$el.html(this.template({
 			alertes: this.model.get('alertes')
 		}));
-		$('#alertes-list', this.$el).DataTable({
-			"paging":     false,
-			"ordering":   false,
-			"info":       false,
-			"searching":  false
-		});
+
+		var alertes = master.model.get('alertes');
+
+		
+		var alerteLineBXModel = new alertLineModel({market: 'BX', level: alertes.bxLevel, direction: alertes.bxDirection})
+		var alerteLineBFXModel = new alertLineModel({market: 'BFX', level: alertes.bfxLevel, direction: alertes.bfxDirection})
+
+		var alerteLineViewBX = new alertLineView({model:alerteLineBXModel});
+		var alerteLineViewBFX = new alertLineView({model:alerteLineBFXModel});
+
+		alerteLineViewBX.render().$el.appendTo('#alertes', this.$el);
+		alerteLineViewBFX.render().$el.appendTo('#alertes', this.$el);
+
 		return this
 	}
 })
+
+
 
 var currentUser = new user();
 var userView = new loginView({model: currentUser});
@@ -206,12 +231,13 @@ oppModel.initialize().done(function(){
 })
 
 
-var alertesModel = new alertesModel();
-var alertesView = new alertesView({model:alertesModel});
+var alertesModel1 = new alertesModel();
+var alertesView = new alertesView({model:alertesModel1});
 
-alertesModel.getAlertes().done(function(a){
+alertesModel1.getAlertes().done(function(a){
 	$('#alertes').empty();
 	alertesView.render().$el.appendTo('#alertes');
+	alertesView.delegateEvents();
 })
 
 
@@ -219,11 +245,11 @@ socket.on('new quote', function(msg){
 	refresh()
 })
 
-alertesModel.on('change', function(){
+alertesModel1.on('change', function(){
 	$('#alertes').empty();
 	alertesView.render().$el.appendTo('#alertes');
 })
 
 currentUser.on('change', function(){
-	alertesModel.getAlertes();
+	alertesModel1.getAlertes();
 })

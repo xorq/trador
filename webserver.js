@@ -301,6 +301,10 @@ var loop = function(quote, subscribers){
 							connection.query(q2, function(err, rows2){
 								var email = rows2[0].email;
 								sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
+								q3 = 'UPDATE alertes SET email_sent=CURDATE() WHERE id="' +  + '"'
+								connection.query(q3, function(){
+									console.log('email sent to ' + email);
+								})
 							})
 						}
 					})				
