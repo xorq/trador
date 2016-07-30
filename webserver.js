@@ -149,7 +149,7 @@ app.post('/userregister', function(req, res){
 				res.cookie('email', req.body.email, {signed: true});
 				res.cookie('id', rows[0].id, {signed: true});
 				res.send('{"id":2, "description": "user logged in"}');
-				connection.query('UPDATE users SET email_sent=NOW() WHERE email="' + req.body.email + '"')
+				connection.query('UPDATE users SET email_sent=CURRENT_TIMESTAMP() WHERE email="' + req.body.email + '"')
 			} else {
 				res.send('{"id":1, "description": "email not confirmed"}')
 			}
@@ -318,9 +318,9 @@ var loop = function(quote, subscribers){
 							var q2 = 'SELECT * FROM users WHERE id = "' + row.user_id + '"';
 							connection.query(q2, function(err, rows2){
 								var email = rows2[0].email;
-								if(((new Date()) - (rows.email_sent || 0)) > 1800000000){
+								if(((new Date()) - (row.email_sent || 0)) > 1800000){
 									sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
-									q3 = 'UPDATE alertes SET email_sent=NOW() WHERE id="' + row.id + '"'
+									q3 = 'UPDATE alertes SET email_sent=CURRENT_TIMESTAMP() WHERE id="' + row.id + '"'
 									connection.query(q3, function(){
 										console.log('email sent to ' + email);
 									})
