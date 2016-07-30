@@ -320,7 +320,7 @@ var loop = function(quote, subscribers){
 								var email = rows2[0].email;
 								if((new Date()) - (rows.email_sent || 0) > 1800000){
 									sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
-									q3 = 'UPDATE alertes SET email_sent=CURDATE() WHERE id="' +  + '"'
+									q3 = 'UPDATE alertes SET email_sent=CURDATE() WHERE id="' + row.id + '"'
 									connection.query(q3, function(){
 										console.log('email sent to ' + email);
 									})
