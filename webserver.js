@@ -78,17 +78,15 @@ var round2 = function(n){
 }
 
 app.get('/alertes', function(req, res){
-	var q = 'SELECT * FROM alertes WHERE user_id = "' + req.signedCookies.id + '"';
+	var q = 'SELECT * FROM users WHERE id = "' + req.signedCookies.id + '"';
 	connection.query(q, function(err, rows){
 		res.send(
-			//_.map(rows, function(row){ return {
-				{
-					bfxLevel: rows && rows[0] && rows[0].bfx_level,
-					bxLevel: rows && rows[0] && rows[0].bx_level,
-					bfxDirection: rows && rows[0] && rows[0].bfx_direction,
-					bxDirection: rows && rows[0] && rows[0].bx_direction
-				} 
-			//}})
+			{
+				bfxLevel: rows && rows[0] && rows[0].opp_bfx_alerte,
+				bxLevel: rows && rows[0] && rows[0].opp_bx_alerte,
+				bfxDirection: rows && rows[0] && rows[0].opp_bfx_direction,
+				bxDirection: rows && rows[0] && rows[0].opp_bx_direction
+			} 
 		);
 	})
 })
@@ -162,7 +160,7 @@ app.post('/modifyalert', function(req, res){
 	var newLevel = req.body['level'];
 	var market = req.body['market'];
 	var direction = req.body['direction'];
-	var q = 'UPDATE alertes SET ' + market.toLowerCase() + '_level=' + newLevel + ', ' + market.toLowerCase() + '_direction=' + direction + ' WHERE user_id="' + user_id + '"';
+	var q = 'UPDATE users SET opp_' + market.toLowerCase() + '_alerte=' + newLevel + ', opp_' + market + '_direction=' + direction + ' WHERE id="' + user_id + '"';
 	connection.query(q, function(err, rows){
 		res.send('done')
 	}) 
@@ -173,11 +171,7 @@ app.get('/verify', function(req, res){
 	var verNum = req.query['conf'];
 	var query = 'UPDATE users SET verified=true WHERE (email = "' + email + '") AND (confcode="' + verNum + '")';
 	connection.query(query, function(err, result){
-		connection.query('SELECT id FROM users WHERE email = "' + email + '"', function(err, row){
-			connection.query('INSERT INTO alertes (user_id) VALUES (' + row[0].id + ')', function(){
-				res.redirect('/index.html?verifieduser=' + email)
-			})
-		})
+		res.redirect('/index.html?verifieduser=' + email)
 	})
 })
 
@@ -192,7 +186,6 @@ var quotation = Backbone.Model.extend({
 		BFXOrderbook: null,
 	},
 	initialize : function(){
-		//On production change this to : this.updateRate();
 		this.set('rates', {usd: 1, thb: 35.16});
 		this.updateRate();
 		this.updateBX();
@@ -205,14 +198,16 @@ var quotation = Backbone.Model.extend({
 			newRates.thb = JSON.parse(data && data.body).quotes.USDTHB;
 			master.set('rates', newRates);
 		});
-			/*var newRates = master.get('rates');
-			newRates.thb = 35;
-			master.set('rates', newRates);*/
 	},
 	updateBX : function(then){
 		var master = this;
 		return rp.get('https://bx.in.th/api/orderbook/?pairing=1', function(error, data){
-				master.set('BXOrderbook', JSON.parse(data.body));
+				try {
+					var a = JSON.parse(data.body)
+				} catch(err){
+					master.set('BXOrderbook', null)
+				}
+				master.set('BXOrderbook', a);
 				if (typeof then == 'function') {
 					then();
 				}
@@ -253,8 +248,8 @@ var quotation = Backbone.Model.extend({
 		}
 		var bx = master.get('BXOrderbook')
 		return {
-			Bprice: bx[bidAsk] && bx[bidAsk][0][0] / rate,
-			Bquantity: bx[bidAsk] && bx[bidAsk][0][1]
+			Bprice: bx && bx[bidAsk] && bx && bx[bidAsk] && bx[bidAsk][0] && (bx[bidAsk][0][0] / rate),
+			Bquantity: bx && bx[bidAsk] && bx && bx[bidAsk] && bx[bidAsk][0] && bx[bidAsk][0][1]
 		}
 	},
 	getBFXBest: function(bidAsk, currency){
@@ -274,7 +269,6 @@ var quotation = Backbone.Model.extend({
 		}
 	},
 	opportunityBXBFX: function(){
-
 		return {
 			oppBuyBX : this.getBFXBest('bids', 'USD')   && round2(this.getBFXBest('bids', 'USD').Bprice - this.getBXBest('asks', 'USD').Bprice),
 			oppBuyBFX : this.getBXBest('bids', 'USD')   && round2(this.getBXBest('bids', 'USD').Bprice - this.getBFXBest('asks', 'USD').Bprice),
@@ -308,41 +302,26 @@ var loop = function(quote, subscribers){
 				maxOpp,
 				'$'
 			].join(' ');
-		var q1 = "SELECT * FROM alertes"
+		var q1 = "SELECT * FROM users"
 		connection.query(q1, function(err, rows){
 			_.each(['BX', 'BFX'], function(market){
 				if (opp['oppBuy' + market] ) {
 					var marketLC = market.toLowerCase();
 					_.each(rows, function(row){
 						if (((row[marketLC + '_direction'] ? 1 : -1) * (opp['oppBuy' + market] - row[marketLC + '_level'])) > 0) {
-							var q2 = 'SELECT * FROM users WHERE id = "' + row.user_id + '"';
-							connection.query(q2, function(err, rows2){
-								var email = rows2[0].email;
-								if(((new Date()) - (row.email_sent || 0)) > 1800000){
-									sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
-									q3 = 'UPDATE alertes SET email_sent=CURRENT_TIMESTAMP() WHERE id="' + row.id + '"'
-									connection.query(q3, function(){
-										console.log('email sent to ' + email);
-									})
-								}
-							})
+							var email = row.email;
+							if(((new Date()) - (row.email_bxbfx_sent || 0)) > 1800000){
+								sendMail(email, 'ALERTE', '', '<b>' + 'Votre alerte est passée pour acheter ' + market + ':' + opp['oppBuy' + market] + ' à gagner</b>', function(){console.log('email sent to ' + email)})	
+								q3 = 'UPDATE users SET email_bxbfx_sent=CURRENT_TIMESTAMP() WHERE id="' + row.id + '"'
+								connection.query(q3, function(){
+									console.log('email sent to ' + email);
+								})
+							}
 						}
 					})				
 				}
 			})
 		})
-		
-		/*_.each(subscribers, function(subscribee){
-
-
-			if (maxOpp > subscribee.alertLevel) {
-				var timeDiff = now - (subscribee.alertTime || 0)
-				if (timeDiff > 3600000){
-					sendMail(subscribee.address, 'ALERTE', '', '<b>' +  + '</b>', function(){console.log('email sent to ' + subscriber.address)})
-				}
-			}
-		})*/
-
 	}
 	quote.updateBFX(function(){
 		io.emit('new quote', '')
@@ -351,19 +330,6 @@ var loop = function(quote, subscribers){
 		quote.refreshData(callback)
 	}, 30000)
 };
-
-/*var checkAlert = function(subscribers, message){
-
-}
-			
-
-			pusher.note(subscribee.email, 'Alert for ' + subscribee.name, message, function(error, response){
-				console.log('alert for ' + subscribee.name + ' sent')
-			})
-			subscribee['alertTime'] = now;
-		}
-	})
-}*/
 
 app.get('/refreshData', function(req, res){
 	quote.refreshData();

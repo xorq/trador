@@ -148,8 +148,7 @@ var alertesModel = Backbone.Model.extend({
 var alertLineModel = Backbone.Model.extend({
 	default:{
 		market: null,
-		level: null, 
-		direction: null,
+		level: null
 	}, 
 	setData: function(data){
 		this.market = data.market;
@@ -203,8 +202,8 @@ var alertesView = Backbone.View.extend({
 		var alertes = master.model.get('alertes');
 
 		
-		var alerteLineBXModel = new alertLineModel({market: 'BX', level: alertes.bxLevel, direction: alertes.bxDirection})
-		var alerteLineBFXModel = new alertLineModel({market: 'BFX', level: alertes.bfxLevel, direction: alertes.bfxDirection})
+		var alerteLineBXModel = new alertLineModel({market: 'BX', level: alertes && alertes.bxLevel, direction: alertes && alertes.bxDirection})
+		var alerteLineBFXModel = new alertLineModel({market: 'BFX', level:  alertes && alertes.bfxLevel, direction: alertes && alertes.bfxDirection})
 
 		var alerteLineViewBX = new alertLineView({model:alerteLineBXModel});
 		var alerteLineViewBFX = new alertLineView({model:alerteLineBFXModel});
